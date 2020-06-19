@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MyTaskList</title>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define("CustomApp",{extend:"Rally.app.App",componentCls:"app",launch:function(){this.add({xtype:"rallyfieldvaluecombobox",itemId:"ownerComboBox",fieldLabel:"Filter by Owner:",model:"Task",stateful:!0,stateId:"tmp"+Ext.id(),field:"Owner",listeners:{select:this._onSelect,ready:this._onLoad,scope:this}})},_onLoad:function(){this.add({xtype:"rallygrid",columnCfgs:["FormattedID","Name","State","Owner","WorkProduct"],context:this.getContext(),storeConfig:{sorters:[{property:"WorkProduct.DragAndDropRank",direction:"ASC"},{property:"TaskIndex",direction:" ASC"}],model:"task",filters:[this._getOwnerFilter()]}})},_getOwnerFilter:function(){return{property:"Owner",operator:"=",value:this.down("#ownerComboBox").getValue()}},_onSelect:function(){var e=this.down("rallygrid").getStore();e.clearFilter(!0),e.filter(this._getOwnerFilter())}});
+
+            Rally.launchApp('CustomApp', {
+                name:"MyTaskList",
+                parentRepos:"",
+                version:"0.1.1"
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+</body>
+</html>
