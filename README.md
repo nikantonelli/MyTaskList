@@ -3,7 +3,7 @@ MyTaskList
 
 ## Overview
 
-![alt text](https://github.com/nikantonelli/mytasklist/blob/master/images/image1.png)
+![alt text](https://github.com/nikantonelli/MyTaskList/blob/master/images/image1.png)
 
 ## License
 
