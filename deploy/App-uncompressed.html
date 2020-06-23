@@ -11,55 +11,84 @@
     extend: 'Rally.app.App',
     componentCls: 'app',
     launch: function() {
-        this.add({
-            xtype: 'rallyfieldvaluecombobox',
-            itemId: 'ownerComboBox',
-            fieldLabel: 'Filter by Owner:',
-            model: 'Task',
-            stateful: true,
-            stateId: 'tmp'+Ext.id(),
-            field: 'Owner',
-            listeners: {
-                select: this._onSelect,
-                ready: this._onLoad,
-                scope: this
-            }
+        var me = this;
+        var modelNames = ['task'];
+        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+            models: modelNames,
+            enableHierarchy: true,
+            remoteSort: true,
+            fetch: ['FormattedID', 'Name', 'State', 'WorkProduct', 'TaskIndex', 'Owner'],
+            sorters: [
+                {
+                    property: 'WorkProduct.DragAndDropRank',
+                    direction: 'ASC'
+                },
+                {
+                    property: 'TaskIndex',
+                    direction:' ASC'
+                }
+            ]
+        }).then({
+            success: function(store) { me._addGridboard(store, modelNames);},
+            scope: me
         });
     },
 
-    _onLoad: function() {
+    _addGridboard: function(store, modelNames) {
+        console.log(this.getContext().getScopedStateId('filters'+Ext.id()));
+
         this.add({
-            xtype: 'rallygrid',
-            columnCfgs: [
-                'FormattedID',
-                'Name',
-                'State',
-                'Owner',
-                'WorkProduct'
-            ],
-            context: this.getContext(),
-            storeConfig: {
-                sorters: [
-                    {
-                        property: 'WorkProduct.DragAndDropRank',
-                        direction: 'ASC'
-                    },
-                    {
-                        property: 'TaskIndex',
-                        direction:' ASC'
-                    }
+            height: '100%',
+            xtype: 'rallygridboard',
+            gridConfig: {
+                columnCfgs: [
+                    'FormattedID',
+                    'Name',
+                    'State',
+                    'Owner',
+                    'WorkProduct'
                 ],
-                model: 'task',
-                filters: [this._getOwnerFilter()]
-            }
+                store: store
+            },
+            plugins: [
+                {
+                    ptype: 'rallygridboardinlinefiltercontrol',
+                    inlineFilterButtonConfig: {
+                        stateful: true,
+                        stateId: this.getContext().getScopedStateId('filters'+Ext.id()),
+                        modelNames: modelNames,
+                        inlineFilterPanelConfig: {
+                            quickFilterPanelConfig: {
+                                whiteListFields: [
+                                   'Tags',
+                                   'Milestones'
+                                ],
+                                defaultFields: [
+                                    'ArtifactSearch',
+                                    'Owner',
+                                    'Iteration'
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    ptype: 'rallygridboardfieldpicker',
+                    headerPosition: 'left',
+                    modelNames: modelNames
+                    //stateful: true,
+                    //stateId: this.getContext().getScopedStateId('columns-example')
+                }
+            ],
+
+            cardBoardConfig: {
+                attribute: 'State'
+            },
+            toggleState: 'grid',
+            modelNames: modelNames,
+            context: this.getContext(),
+
         });
-    },
-    _getOwnerFilter: function() {
-        return {
-            property: 'Owner',
-            operator: '=',
-            value: this.down('#ownerComboBox').getValue()
-        };
     },
 
     _onSelect: function() {
