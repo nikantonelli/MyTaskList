@@ -9,7 +9,7 @@ Ext.define('CustomApp', {
                 {
                     xtype: 'container',
                     id: 'fieldbox',
-                    width: 80
+                    width: 100
                 },
                 {
                     xtype: 'container',
@@ -29,11 +29,14 @@ Ext.define('CustomApp', {
         this.down('#fieldbox').add({
             xtype: 'rallybutton',
             text: 'Fields',
-            width: 60,
+            width: 80,
             margin: 10,
+            iconCls: 'x4-btn-icon-el icon-add-column',
+            //iconOnly: true,
             handler: function() {
                 if (me.down('#fieldPicker'). isVisible()) {
                     me.down('#fieldPicker').hide();
+                    me.down('#fieldPicker').refreshView();
                     me._redrawGrid();
                 }
                 else {
