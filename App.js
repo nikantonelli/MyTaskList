@@ -1,63 +1,95 @@
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
+    items: [
+        {
+            xtype: 'container',
+            id: 'filterbox'
+        }
+    ],
+    modelNames: ['Task'],
     launch: function() {
-        this.add({
-            xtype: 'rallyfieldvaluecombobox',
-            itemId: 'ownerComboBox',
-            fieldLabel: 'Filter by Owner:',
-            model: 'Task',
-            stateful: true,
-            stateId: 'tmp'+Ext.id(),
-            field: 'Owner',
-            listeners: {
-                select: this._onSelect,
-                ready: this._onLoad,
-                scope: this
-            }
-        });
-    },
+        var blackListFields = ['Successors', 'Predecessors', 'DisplayColor'],
+            whiteListFields = ['Milestones', 'Tags'];
 
-    _onLoad: function() {
-        this.add({
-            xtype: 'rallygrid',
-            columnCfgs: [
-                'FormattedID',
-                'Name',
-                'State',
-                'Owner',
-                'WorkProduct'
-            ],
+        this.down('#filterbox').add({
+            xtype: 'rallyinlinefiltercontrol',
             context: this.getContext(),
-            storeConfig: {
-                sorters: [
-                    {
-                        property: 'WorkProduct.DragAndDropRank',
-                        direction: 'ASC'
+            height: 26,
+            inlineFilterButtonConfig: {
+                stateful: true,
+                stateId: this.getContext().getScopedStateId('inline-filter'),
+                context: this.getContext(),
+                modelNames: this.modelNames,
+                filterChildren: false,
+                inlineFilterPanelConfig: {
+                    quickFilterPanelConfig: {
+                        defaultFields: ['ArtifactSearch', 'Owner', 'Iteration', 'State'],
+                        addQuickFilterConfig: {
+                            blackListFields: blackListFields,
+                            whiteListFields: whiteListFields
+                        }
                     },
-                    {
-                        property: 'TaskIndex',
-                        direction:' ASC'
+                    advancedFilterPanelConfig: {
+                        advancedFilterRowsConfig: {
+                            propertyFieldConfig: {
+                                blackListFields: blackListFields,
+                                whiteListFields: whiteListFields
+                            }
+                        }
                     }
-                ],
-                model: 'task',
-                filters: [this._getOwnerFilter()]
+                },
+                listeners: {
+                    inlinefilterchange: this._onFilterChange,
+                    inlinefilterready: this._onFilterReady,
+                    scope: this
+                }
             }
         });
     },
-    _getOwnerFilter: function() {
-        return {
-            property: 'Owner',
-            operator: '=',
-            value: this.down('#ownerComboBox').getValue()
-        };
+
+    _onFilterChange: function(inlineFilterButton) {
+        var filterInfo = inlineFilterButton.getTypesAndFilters();
+
+        if (!this.down('rallygrid')) {
+            this.add({
+                xtype: 'rallygrid',
+                columnCfgs: [
+                    'FormattedID',
+                    'Name',
+                    'State',
+                    'Owner',
+                    'WorkProduct'
+                ],
+                context: this.getContext(),
+                storeConfig: {
+                    models: filterInfo.types,
+                    filters: filterInfo.filters,
+                    sorters: [
+                        {
+                            property: 'WorkProduct.DragAndDropRank',
+                            direction: 'ASC'
+                        },
+                        {
+                            property: 'TaskIndex',
+                            direction:' ASC'
+                        }
+                    ],
+                }
+            });
+        } else {
+            var store = this.down('rallygrid').getStore();
+            if (Ext.isEmpty(filterInfo.filters)) {
+                store.clearFilter();
+            } else {
+                store.clearFilter(true);
+                store.filter(filterInfo.filters);
+            }
+        }
     },
 
-    _onSelect: function() {
-        var grid = this.down('rallygrid'),
-            store = grid.getStore();
-
-        store.clearFilter(true);
-        store.filter(this._getOwnerFilter());
+    _onFilterReady: function(inlineFilterPanel) {
+        this.add(inlineFilterPanel);
     }
+
 });
