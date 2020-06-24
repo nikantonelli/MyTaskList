@@ -38,18 +38,19 @@ Ext.define('CustomApp', {
                 }
                 else {
                     me.down('#fieldPicker').show();
+                    me.down('#fieldPicker').refreshView();
                 }
             },
             scope: me
         });
-        this.down('#filterbox').add({
+        var fieldpicker = this.down('#filterbox').add({
                 xtype: 'rallyfieldpicker',
                 id: 'fieldPicker',
-                modelTypes: this.modelNames,
-                showAllCustomFields: true,
-                hidden: true,
-                
+                modelTypes: this.modelNames
         });
+
+        fieldpicker.hide();
+
 
         this.down('#filterbox').add({
             xtype: 'rallyinlinefiltercontrol',
