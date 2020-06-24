@@ -4,18 +4,58 @@ Ext.define('CustomApp', {
     items: [
         {
             xtype: 'container',
-            id: 'filterbox'
+            layout: 'hbox',
+            items: [
+                {
+                    xtype: 'container',
+                    id: 'fieldbox',
+                    width: 80
+                },
+                {
+                    xtype: 'container',
+                    id: 'filterbox',
+                    flex: 1
+                }
+            ]
+            
         }
     ],
     modelNames: ['Task'],
     launch: function() {
+        var me = this;
         var blackListFields = ['Successors', 'Predecessors', 'DisplayColor'],
             whiteListFields = ['Milestones', 'Tags'];
+
+        this.down('#fieldbox').add({
+            xtype: 'rallybutton',
+            text: 'Fields',
+            width: 60,
+            margin: 10,
+            handler: function() {
+                if (me.down('#fieldPicker'). isVisible()) {
+                    me.down('#fieldPicker').hide();
+                    me._redrawGrid();
+                }
+                else {
+                    me.down('#fieldPicker').show();
+                }
+            },
+            scope: me
+        });
+        this.down('#filterbox').add({
+                xtype: 'rallyfieldpicker',
+                id: 'fieldPicker',
+                modelTypes: this.modelNames,
+                showAllCustomFields: true,
+                hidden: true,
+                
+        });
 
         this.down('#filterbox').add({
             xtype: 'rallyinlinefiltercontrol',
             context: this.getContext(),
             height: 26,
+            margin: 7,
             inlineFilterButtonConfig: {
                 stateful: true,
                 stateId: this.getContext().getScopedStateId('inline-filter'),
@@ -46,46 +86,44 @@ Ext.define('CustomApp', {
                 }
             }
         });
+
     },
 
     _onFilterChange: function(inlineFilterButton) {
-        var filterInfo = inlineFilterButton.getTypesAndFilters();
+        this.filterInfo = inlineFilterButton.getTypesAndFilters();
+        this._redrawGrid();
+    },
 
-        if (!this.down('rallygrid')) {
-            this.add({
-                xtype: 'rallygrid',
-                columnCfgs: [
+    _redrawGrid: function() {
+        var me = this;
+        var columnCfgs = [
                     'FormattedID',
-                    'Name',
-                    'State',
-                    'Owner',
-                    'WorkProduct'
-                ],
-                context: this.getContext(),
-                storeConfig: {
-                    models: filterInfo.types,
-                    filters: filterInfo.filters,
-                    sorters: [
-                        {
-                            property: 'WorkProduct.DragAndDropRank',
-                            direction: 'ASC'
-                        },
-                        {
-                            property: 'TaskIndex',
-                            direction:' ASC'
-                        }
-                    ],
-                }
-            });
-        } else {
-            var store = this.down('rallygrid').getStore();
-            if (Ext.isEmpty(filterInfo.filters)) {
-                store.clearFilter();
-            } else {
-                store.clearFilter(true);
-                store.filter(filterInfo.filters);
-            }
+                    'Name'
+                ].concat(me.down('#fieldPicker').getSubmitValue());
+        var grid = this.down('rallygrid');
+        if (grid) { 
+            grid.destroy();
         }
+        
+        grid = this.add({
+            xtype: 'rallygrid',
+            columnCfgs: columnCfgs,
+            context: this.getContext(),
+            storeConfig: {
+                models: me.filterInfo.types,
+                filters: me.filterInfo.filters,
+                sorters: [
+                    {
+                        property: 'WorkProduct.DragAndDropRank',
+                        direction: 'ASC'
+                    },
+                    {
+                        property: 'TaskIndex',
+                        direction:' ASC'
+                    }
+                ],
+            }
+        });
     },
 
     _onFilterReady: function(inlineFilterPanel) {
