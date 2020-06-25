@@ -21,7 +21,29 @@ Ext.define('CustomApp', {
         }
     ],
     modelNames: ['Task'],
+    fieldNames: [],
+
     launch: function() {
+        var me = this;
+        Rally.data.PreferenceManager.load( {
+            appId: this.getAppId(),
+            filterByUser: true,
+            filterByName: 'pickerFields',
+            workspace: me.getContext().getWorkspace()._ref,
+            success: function(results) {
+                console.log('###prefs restored: ', results);
+                if ( Object.keys(results).length) {
+                    me.fieldNames = results.pickerFields.split(",") || [];
+                }
+                me._kickOff();
+            },
+            failure: function(e) {
+                console.log('###prefs error: ', e);
+            }
+        });
+    },
+
+    _kickOff: function() {
         var me = this;
         var blackListFields = ['Successors', 'Predecessors', 'DisplayColor'],
             whiteListFields = ['Milestones', 'Tags'];
@@ -37,7 +59,7 @@ Ext.define('CustomApp', {
                 if (me.down('#fieldPicker'). isVisible()) {
                     me.down('#fieldPicker').hide();
                     me.down('#fieldPicker').refreshView();
-                    me._redrawGrid();
+//                    me._redrawGrid();
                 }
                 else {
                     me.down('#fieldPicker').show();
@@ -46,13 +68,38 @@ Ext.define('CustomApp', {
             },
             scope: me
         });
-        var fieldpicker = this.down('#filterbox').add({
+        this.fieldpicker = this.down('#filterbox').add({
                 xtype: 'rallyfieldpicker',
                 id: 'fieldPicker',
-                modelTypes: this.modelNames
+                value: me.fieldNames,
+                stateful: true,
+                stateId: this.getContext().getScopedStateId('fieldPicker'),
+                modelTypes: this.modelNames,
+                listeners: {
+                    selectionchange: function(picker) {
+                        Rally.data.PreferenceManager.update({
+                            appId: this.getAppId(),
+                            filterByUser: true,
+                            workspace: me.getContext().getWorkspace()._ref,
+//                            project: me.getContext().getProject()._ref,
+                            settings: { pickerFields : picker.getSubmitValue() },
+                            success: function(updated) {
+                                console.log('###prefs saved: ', updated);
+                                me.fieldNames = picker.getSubmitValue();
+                                me._redrawGrid();
+                            },
+                            failure: function(e) {
+                                console.log('###prefs error2: ',e);
+                            }
+                        });
+                    },
+                    ready: me._redrawGrid,
+                    scope: this
+                },
         });
 
-        fieldpicker.hide();
+        Ext.util.Observable.capture( this.fieldpicker, function(event) { console.log('picker', event, arguments);});
+        this.fieldpicker.hide();
 
 
         this.down('#filterbox').add({
@@ -103,7 +150,7 @@ Ext.define('CustomApp', {
         var columnCfgs = [
                     'FormattedID',
                     'Name'
-                ].concat(me.down('#fieldPicker').getSubmitValue());
+                ].concat(me.fieldNames);
         var grid = this.down('rallygrid');
         if (grid) { 
             grid.destroy();
